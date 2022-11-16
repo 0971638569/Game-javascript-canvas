@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>GAME</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/> 
+        <link rel="stylesheet" type="text/css" href="styles.css" /> 
+    </head>
+    <body onload="game()" id="body">
+        <script src="./game.js" type="text/javascript"></script>
+        <p>THIS IS A FUN GAME (^_^)</p>
+        <div id="button">
+           <button onmousedown="moveUp()" onmouseup="clearMove()" ontouchstart="moveUp()" id="up-btn">UP</button>
+           <div class="btnMove">
+                <button onmousedown="moveLeft()" onmouseup="clearMove()" ontouchstart="moveLeft()">LFFT</button>
+                <button onmousedown="moveRight()" onmouseup="clearMove()" ontouchstart="moveRight()">RIGHT</button>
+           </div>
+           <button onmousedown="moveDown()" onmouseup="clearMove()" ontouchstart="moveDown()">DOWN</button>
+        </div>
+    </body>
+</html>
