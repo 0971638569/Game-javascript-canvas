@@ -1,16 +1,32 @@
 let screenWidthRatio = 0.5;
 let screenHeightRatio = 2;
-let isCircle = "circle";
+let moveStep = 2;
+let speed = 1;
+let obstacleSpawnTime = 5000;
+let loop = 50;
+
+const drawEum = {
+    CIRCLE: 'circle',
+    TEXT: 'text',
+    CYLINDER: 'cylinder',
+}
+
+const colorEnum = {
+    RED: 'red',
+    BLACK: 'black'
+}
 
 let bird;
 let wall;
 let score;
+let firstStart;
 
 function game() {
-    bird = new DrawComponents(20, 20, 'black', 10, 30, ((window.innerWidth * screenWidthRatio) / screenHeightRatio) / 2, "circle");
-    score = new DrawComponents("18px", "Arial", "black", 0, 30, 30, "text")
+    bird = new DrawComponents(20, 20, colorEnum.BLACK, 10, 30, ((window.innerWidth * screenWidthRatio) / screenHeightRatio) / 2, drawEum.CIRCLE);
+    score = new DrawComponents("18px", "Arial", colorEnum.BLACK, 0, 30, 30, drawEum.TEXT)
     wall = [];
     gameObject.start();
+    firstStart = false;
 }
 
 let gameObject = {
@@ -20,8 +36,9 @@ let gameObject = {
         this.canvas.height = this.canvas.width / screenHeightRatio;
         this.context = this.canvas.getContext("2d");
         this.textScore = 0;
+        this.timeInterval = 0;
         document.body.insertBefore(this.canvas, document.body.childNodes[0])
-        this.interval = setInterval(gameUpdate, 50);
+        this.interval = setInterval(gameUpdate, loop);
     },
     clear: function () {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -31,73 +48,74 @@ let gameObject = {
     }
 }
 
-function DrawComponents(width, height, color, radius, positionX, positionY, type) {
-    this.width = width;
-    this.height = height;
-    this.positionX = positionX;
-    this.positionY = positionY;
-    this.moveX = 0;
-    this.moveY = 0;
-    this.flapping = 10;
-    this.type = type;
-    this.update = function() {
-        let draw = gameObject.context;
-        if (this.type === isCircle){
+class DrawComponents {
+    constructor(width, height, color, radius, positionX, positionY, type) {
 
-            draw.beginPath();
-            draw.fillStyle = "red";
-            draw.fillRect(this.positionX, this.positionY, 20, 5);
+        this.width = width;
+        this.height = height;
+        this.positionX = positionX;
+        this.positionY = positionY;
+        this.moveX = 0;
+        this.moveY = 0;
+        this.flapping = 10;
+        this.type = type;
 
-            draw.beginPath();
-            draw.fillStyle = color;
-            draw.arc(this.positionX, this.positionY, radius, 0, 2 * Math.PI);
-            draw.fill();
+        this.update = function () {
+            let draw = gameObject.context;
+            if (this.type === drawEum.CIRCLE) {
 
-            draw.beginPath();
-            draw.fillStyle = "red";
-            draw.moveTo(this.positionX + 5, this.positionY);
-            draw.lineTo(this.positionX - 10, this.positionY);
-            draw.lineTo(this.positionX + 10, this.positionY + this.flapping - 50 * Math.cos(Math.PI / 6));
-            draw.fill();
+                // draw.beginPath();
+                // draw.fillStyle = colorEnum.RED;
+                // draw.fillRect(this.positionX, this.positionY, 20, 5);
 
-        } else if (this.type === "text") {
-            draw.beginPath();
-            draw.font = this.width + " " + this.height;
-            draw.fillStyle = color;
-            draw.fillText(this.text, this.positionX, this.positionY);
-        } else {
-            draw.beginPath();
-            draw.fillStyle = color;
-            draw.fillRect(this.positionX, this.positionY, this.width, this.height);
-        }
-        
-    };
-    this.move = function() {
-        this.positionX += this.moveX;
-        this.positionY += this.moveY; 
-    };
-    this.cashWith = function(obj) {
+                draw.beginPath();
+                draw.fillStyle = color;
+                draw.arc(this.positionX, this.positionY, radius, 0, 2 * Math.PI);
+                draw.fill();
 
-        let myLeft = this.positionX,
-            myRight = this.positionX + this.width,
-            myTop = this.positionY,
-            myBottom = this.positionY + this.height;
+                // draw.beginPath();
+                // draw.fillStyle = colorEnum.RED;
+                // draw.moveTo(this.positionX + 5, this.positionY);
+                // draw.lineTo(this.positionX - 10, this.positionY);
+                // draw.lineTo(this.positionX - 10, this.positionY + this.flapping - 30 * Math.cos(Math.PI / 6));
+                // draw.fill();
 
-        let OtherLeft = obj.positionX,
-            otherRight = obj.positionX + obj.width,
-            otherTop = obj.positionY,
-            otherBottom = obj.positionY + obj.height;
-        
-        let crash = true;
+            } else if (this.type === drawEum.TEXT) {
+                draw.beginPath();
+                draw.font = this.width + " " + this.height;
+                draw.fillStyle = color;
+                draw.fillText(this.text, this.positionX, this.positionY);
+            } else {
+                draw.beginPath();
+                draw.fillStyle = color;
+                draw.fillRect(this.positionX, this.positionY, this.width, this.height);
+            }
 
-        if ((myBottom < otherTop) || (myTop > otherBottom) || (myRight < OtherLeft) || (myLeft > otherRight)) {
-            crash = false;
-        }
-        return crash;
+        };
+
+        this.move = function () {
+            this.positionX += this.moveX;
+            this.positionY += this.moveY;
+        };
+
+        this.cashWith = function (obj) {
+
+            let myLeft = this.positionX, myRight = this.positionX + (this.width / 2), myTop = this.positionY, myBottom = this.positionY + (this.height / 2);
+
+            let OtherLeft = obj.positionX, otherRight = obj.positionX + obj.width , otherTop = obj.positionY, otherBottom = obj.positionY + obj.height;
+
+            let crash = true;
+
+            if ((myBottom < otherTop) || (myTop > otherBottom) || (myRight < OtherLeft) || (myLeft > otherRight)) {
+                crash = false;
+            }
+            return crash;
+        };
     }
 }
 
 function gameUpdate() {
+
     let positionX, height, gap, minHeight, maxHeight, minGap, maxGap;
 
     wall.forEach(element => {
@@ -108,56 +126,77 @@ function gameUpdate() {
     });
 
     gameObject.clear();
-    gameObject.textScore = wallDistance(150) ? gameObject.textScore + 1 : gameObject.textScore;
+    bird.flapping = setFlapping();
+    gameObject.timeInterval = setTimeInterval();
+    gameObject.textScore = wallDistance() ? gameObject.textScore + 1 : gameObject.textScore;
 
-    if ((gameObject.textScore === 1) || wallDistance(150)) {
+    if (wallDistance()) {
         positionX = gameObject.canvas.width;
         minHeight = 20;
-        maxHeight = 200;
+        maxHeight = gameObject.canvas.height - 50;
+        minGap = 30;
+        maxGap = gameObject.canvas.height / 3;
         height = Math.floor(Math.random()*(maxHeight - minHeight + 1) + minHeight);
-        minGap = 50
-        maxGap = 200
         gap = Math.floor(Math.random()*(maxGap - minGap + 1) + minGap);
-        wall.push(new DrawComponents(20, height, "black", 0, positionX, 0, "cylinder"));
-        wall.push(new DrawComponents(20, 300, "red", 0, positionX, positionX + gap, "cylinder"));
+        wall.push(new DrawComponents(20, height, colorEnum.BLACK, 0, positionX, 0, drawEum.CYLINDER));
+        wall.push(new DrawComponents(20, gameObject.canvas.height - (height + gap), colorEnum.RED, 0, positionX, height + gap, drawEum.CYLINDER));
     }
 
     wall.forEach((element, i) => {
-        wall[i].positionX -= 1;
+        wall[i].positionX -= speed;
         wall[i].move();
         wall[i].update();
     });
 
-    bird.flapping = setFlapping();
     score.text = "SCORE: " + gameObject.textScore;
     bird.move();
     bird.update();
     score.update();
 }
 
-function wallDistance(metter) {
-    return (gameObject.textScore / metter) % 1 === 0;
+function wallDistance() {
+    return gameObject.timeInterval > obstacleSpawnTime;
+}
+
+function setTimeInterval() {
+    return gameObject.timeInterval > obstacleSpawnTime ? 50 : gameObject.timeInterval + 50;
 }
 
 function setFlapping() {
-    let flyUp = 80, flyDown = 10;
-    return bird.flapping > 70 ? flyDown : flyUp;
+    let flyUp = 40, flyDown = 10;
+    return bird.flapping > 10 ? flyDown : flyUp;
 }
 
 function moveUp() {
-    bird.moveY = -2;
+    if (bird.positionY < (bird.width / 2)) {
+        bird.moveY = 0;
+        return;
+    }
+    bird.moveY = -moveStep;
 }
 
 function moveDown() {
-    bird.moveY = 2;
+    if (bird.positionY > gameObject.canvas.height - (bird.height / 2)) {
+        bird.moveY = 0;
+        return;
+    }
+    bird.moveY = moveStep;
 }
 
 function moveLeft() {
-    bird.moveX = -2;
+    if (bird.positionX < (bird.height / 2)) {
+        bird.moveX = 0;
+        return;
+    }
+    bird.moveX = -moveStep;
 }
 
 function moveRight() {
-    bird.moveX = 2;
+    if (bird.positionX > gameObject.canvas.width - (bird.width / 2)) {
+        bird.moveX = 0;
+        return;
+    }
+    bird.moveX = moveStep;
 }
 
 function clearMove() {
@@ -166,51 +205,62 @@ function clearMove() {
 }
 
 document.addEventListener("keydown", function(event) {
+
     let name = event.key,
         code = event.code;
+
     if (name === "ArrowUp") {
         let upBtn = document.getElementById("up-btn");
         upBtn.classList.add("btnActive");
         moveUp();
     }
+
     if (name === "ArrowDown") {
         let downBtn = document.getElementById("down-btn");
         downBtn.classList.add("btnActive");
         moveDown();
     }
+
     if (name === "ArrowLeft") {
         let leftBtn = document.getElementById("left-btn");
         leftBtn.classList.add("btnActive");
         moveLeft();
     }
+
     if (name === "ArrowRight") {
         let rightBtn = document.getElementById("right-btn");
         rightBtn.classList.add("btnActive");
         moveRight();
     }
+
 }, false);
 
 document.addEventListener("keyup", function(event) {
     let name = event.key,
         code = event.code;
+
     if (name === "ArrowUp") {
         let upBtn = document.getElementById("up-btn");
         upBtn.classList.remove("btnActive");
         clearMove();
     }
+
     if (name === "ArrowDown") {
         let downBtn = document.getElementById("down-btn");
         downBtn.classList.remove("btnActive");
         clearMove();
     }
+
     if (name === "ArrowLeft") {
         let leftBtn = document.getElementById("left-btn");
         leftBtn.classList.remove("btnActive");
         clearMove();
     }
+
     if (name === "ArrowRight") {
         let rightBtn = document.getElementById("right-btn");
         rightBtn.classList.remove("btnActive");
         clearMove();
     }
+    
 }, false);
